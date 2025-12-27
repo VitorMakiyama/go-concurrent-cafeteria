@@ -2,34 +2,44 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"machine"
 )
 
-type Grinder struct {}
-
-func Grind(grinders chan Grinder, orderID int, results chan<- int) {
-	m := <- grinders
-	grindingTime := time.Duration(1)
-	time.Sleep(grindingTime * time.Second)
-	fmt.Println(fmt.Sprintf("Grinded beans: %d", orderID))
-	results <- orderID
-	grinders <- m
-}
+const (
+	numberOfGrinders         = 2
+	numberOfExpressoMachines = 2
+)
 
 func main() {
-	// Creating my Grinder machines
-	numberOfGrinders := 2
-	grinders := make(chan Grinder, numberOfGrinders)
-	for _ = range numberOfGrinders {
-		grinders <- Grinder{}
-	}
+	grinders, expressoMachines := SetupMachines()
 
 	numberOfOrders := 100
-	results := make(chan int)
+	orderedLatte := make(chan int, numberOfOrders)
 	for i := range numberOfOrders {
-		go Grind(grinders, i, results)
+		go makeACoffe(i, grinders, expressoMachines, orderedLatte)
 	}
-	for counter := 0; counter < 100; counter++ {
-		<- results
+
+	lattes := []int{}
+	for _ = range numberOfOrders {
+		lattes = append(lattes, <-orderedLatte)
+		fmt.Println(lattes, len(lattes))
 	}
+}
+
+func makeACoffe(orderID int, grinders chan Grinder, expressoMachines chan ExpressoMachine, latte chan<- int) {
+	// Get a Grinder
+	grinder := <-grinders
+	grinder.GrindBeans(orderID)
+	// Return the Grinder to the channel so others can use it
+	grinders<- grinder
+	// Get beans from Grinder
+	beans := <-grinder.beans
+
+	// Get a ExpressoMachine
+	expressoMachine := <-expressoMachines
+	expressoMachine.MakeExpresso(beans)
+	// Return the ExpressoMachine to the channel so others can use it
+	expressoMachines<- expressoMachine
+	// Get coffe from ExpressoMachine
+	latte<- <-expressoMachine.coffe
 }
