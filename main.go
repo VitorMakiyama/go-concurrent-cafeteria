@@ -2,16 +2,11 @@ package main
 
 import (
 	"fmt"
-	"machine"
-)
-
-const (
-	numberOfGrinders         = 2
-	numberOfExpressoMachines = 2
+	"go-concurrent-cafeteria/machine"
 )
 
 func main() {
-	grinders, expressoMachines := SetupMachines()
+	grinders, expressoMachines := machine.SetupMachines()
 
 	numberOfOrders := 100
 	orderedLatte := make(chan int, numberOfOrders)
@@ -26,14 +21,14 @@ func main() {
 	}
 }
 
-func makeACoffe(orderID int, grinders chan Grinder, expressoMachines chan ExpressoMachine, latte chan<- int) {
+func makeACoffe(orderID int, grinders chan machine.Grinder, expressoMachines chan machine.ExpressoMachine, latte chan<- int) {
 	// Get a Grinder
 	grinder := <-grinders
 	grinder.GrindBeans(orderID)
 	// Return the Grinder to the channel so others can use it
 	grinders<- grinder
 	// Get beans from Grinder
-	beans := <-grinder.beans
+	beans := <-grinder.Beans
 
 	// Get a ExpressoMachine
 	expressoMachine := <-expressoMachines
@@ -41,5 +36,5 @@ func makeACoffe(orderID int, grinders chan Grinder, expressoMachines chan Expres
 	// Return the ExpressoMachine to the channel so others can use it
 	expressoMachines<- expressoMachine
 	// Get coffe from ExpressoMachine
-	latte<- <-expressoMachine.coffe
+	latte<- <-expressoMachine.Coffe
 }

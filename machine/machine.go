@@ -6,26 +6,31 @@ import (
 	"math/rand"
 )
 
+const (
+	numberOfGrinders         = 2
+	numberOfExpressoMachines = 2
+)
+
 type Grinder struct {
-	beans chan int
+	Beans chan int
 }
 
 func (g *Grinder) GrindBeans(orderID int) {
 	grindingTime := time.Duration(rand.Float32())
 	time.Sleep(grindingTime * time.Second) // or time.Millisecond, for quicker simulation
 	fmt.Println(fmt.Sprintf("Grinded beans: %d", orderID))
-	g.beans<- orderID
+	g.Beans<- orderID
 }
 
 type ExpressoMachine struct {
-	coffe chan int
+	Coffe chan int
 }
 
 func (em *ExpressoMachine) MakeExpresso(grindedBeans int) {
 	expressoTime := time.Duration(rand.Float32())
 	time.Sleep(expressoTime * time.Second) // or time.Millisecond, for quicker simulation
 	fmt.Println(fmt.Sprintf("Made the expresso: %d", grindedBeans))
-	em.coffe<- grindedBeans
+	em.Coffe<- grindedBeans
 }
 
 func SetupMachines() (chan Grinder, chan ExpressoMachine) {
@@ -34,7 +39,7 @@ func SetupMachines() (chan Grinder, chan ExpressoMachine) {
 	grinders := make(chan Grinder, numberOfGrinders)
 	// Setting up the Worker Pool (of Grinders)
 	for _ = range numberOfGrinders {
-		grinders <- Grinder{ beans: beans }
+		grinders <- Grinder{ Beans: beans }
 	}
 
 	coffe := make(chan int, 100)
@@ -42,7 +47,7 @@ func SetupMachines() (chan Grinder, chan ExpressoMachine) {
 	expressoMachines := make(chan ExpressoMachine, numberOfExpressoMachines)
 	// Setting up the Worker Pool (of ExpressoMachines)
 	for _ = range numberOfExpressoMachines {
-		expressoMachines <- ExpressoMachine{ coffe: coffe }
+		expressoMachines <- ExpressoMachine{ Coffe: coffe }
 	}
 
 	return grinders, expressoMachines
