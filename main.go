@@ -5,11 +5,12 @@ import (
 	"go-concurrent-cafeteria/machine"
 )
 
+const numberOfOrders = 100
+
 func main() {
 	grinders, expressoMachines, steamers := machine.SetupMachines()
 
-	numberOfOrders := 100
-	orderedLatte := make(chan Latte, numberOfOrders)
+	orderedLatte := make(chan Latte)
 	for i := range numberOfOrders {
 		go makeALatte(i, grinders, expressoMachines, steamers, orderedLatte)
 	}
@@ -18,8 +19,9 @@ func main() {
 	// Appends the lattes to a slice so we can deliver them!
 	for _ = range numberOfOrders {
 		lattes = append(lattes, <-orderedLatte)
-		fmt.Println(lattes, len(lattes))
+		fmt.Println("Delivered Latte ", lattes[len(lattes) - 1].orderID)
 	}
+	fmt.Println(fmt.Sprintf("Delivered %d lattes: ", len(lattes)), lattes)
 }
 
 type Latte struct {
@@ -28,18 +30,24 @@ type Latte struct {
 	milk	int
 }
 
-func makeALatte(orderID int, grinders chan machine.Grinder, expressoMachines chan machine.ExpressoMachine, steamers chan machine.Steamer, lattes chan Latte) {
-	lattes<- Latte{
+func (l *Latte) IsDone() bool {
+	// The Latte is done when it have both coffe and milk set
+	return l.coffe != -1 && l.milk != -1
+}
+
+func makeALatte(orderID int, grinders chan machine.Grinder, expressoMachines chan machine.ExpressoMachine, steamers chan machine.Steamer, orderedReadyLatte chan Latte) {
+	unfinishedLattes := make(chan Latte, numberOfOrders)
+	unfinishedLattes<- Latte{
 		orderID: orderID,
 		coffe: -1,
 		milk: -1,
 	}
-	go makeACoffe(orderID, grinders, expressoMachines, lattes)
+	go makeACoffe(orderID, grinders, expressoMachines, unfinishedLattes, orderedReadyLatte)
 
-	steamMilk(orderID, steamers, lattes)
+	steamMilk(orderID, steamers, unfinishedLattes, orderedReadyLatte)
 }
 
-func makeACoffe(orderID int, grinders chan machine.Grinder, expressoMachines chan machine.ExpressoMachine, lattes chan Latte) {
+func makeACoffe(orderID int, grinders chan machine.Grinder, expressoMachines chan machine.ExpressoMachine, unfinishedLattes chan Latte, readyLattes chan<- Latte) {
 	// Get a Grinder
 	grinder := <-grinders
 	// Grind Beans !
@@ -59,12 +67,18 @@ func makeACoffe(orderID int, grinders chan machine.Grinder, expressoMachines cha
 	expressoMachines<- expressoMachine
 
 	// Put coffe on the ordered Latte
-	latte := <-lattes
+	latte := <-unfinishedLattes
 	latte.coffe = expresso
-	lattes<- latte
+	// Check  if the Latte is ready, if so put it in the ready chan !
+	if latte.IsDone() {
+		readyLattes<- latte
+	} else {
+	//  If it is not finished, put it in the chan and let the other worker finish its part
+		unfinishedLattes<- latte
+	}
 }
 
-func steamMilk(orderID int, steamers chan machine.Steamer, lattes chan Latte) {
+func steamMilk(orderID int, steamers chan machine.Steamer, unfinishedLattes chan Latte, readyLattes chan<- Latte) {
 	// Get a Steamer
 	steamer := <-steamers
 	// Steam Milk !
@@ -75,7 +89,12 @@ func steamMilk(orderID int, steamers chan machine.Steamer, lattes chan Latte) {
 	steamers<- steamer
 
 	// Put steamed milk on the Latte
-	latte := <-lattes
+	latte := <-unfinishedLattes
 	latte.milk = steamedMilk
-	lattes<- latte
+	// Check  if the Latte is ready, if so put it in the ready chan !
+	if latte.IsDone() {
+		readyLattes<- latte
+	} else {
+		unfinishedLattes<- latte
+	}
 }

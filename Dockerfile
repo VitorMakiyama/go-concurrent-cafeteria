@@ -8,6 +8,6 @@ COPY go.mod ./
 RUN go mod download
 
 COPY . .
-RUN go build -v ./...
+RUN go build -v -race ./...
 
 CMD ["go", "run", "."]
