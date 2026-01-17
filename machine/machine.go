@@ -9,46 +9,68 @@ import (
 const (
 	numberOfGrinders         = 2
 	numberOfExpressoMachines = 2
+	numberOfSteamers = 1
 )
 
 type Grinder struct {
-	Beans chan int
+	GroundsQueue chan int
+}
+
+func workOnIt() {
+	workTime := time.Duration(rand.Float32())
+	time.Sleep(workTime * time.Second) // or time.Millisecond, for quicker simulation
 }
 
 func (g *Grinder) GrindBeans(orderID int) {
-	grindingTime := time.Duration(rand.Float32())
-	time.Sleep(grindingTime * time.Second) // or time.Millisecond, for quicker simulation
+	workOnIt()
 	fmt.Println(fmt.Sprintf("Grinded beans: %d", orderID))
-	g.Beans<- orderID
+	g.GroundsQueue<- orderID
 }
 
 type ExpressoMachine struct {
-	Coffe chan int
+	CoffeQueue chan int
 }
 
 func (em *ExpressoMachine) MakeExpresso(grindedBeans int) {
-	expressoTime := time.Duration(rand.Float32())
-	time.Sleep(expressoTime * time.Second) // or time.Millisecond, for quicker simulation
+	workOnIt()
 	fmt.Println(fmt.Sprintf("Made the expresso: %d", grindedBeans))
-	em.Coffe<- grindedBeans
+	em.CoffeQueue<- grindedBeans
 }
 
-func SetupMachines() (chan Grinder, chan ExpressoMachine) {
+type Steamer struct {
+	SteamedMilkQueue chan int
+}
+
+func (s *Steamer) SteamMilk(orderID int) {
+	workOnIt()
+	fmt.Println(fmt.Sprintf("Steamed the milk: %d", orderID))
+	s.SteamedMilkQueue<- orderID
+}
+
+func SetupMachines() (chan Grinder, chan ExpressoMachine, chan Steamer) {
 	beans := make(chan int, 100)
 	// Creating my Grinder machines channel (so I can limit their use)
 	grinders := make(chan Grinder, numberOfGrinders)
 	// Setting up the Worker Pool (of Grinders)
 	for _ = range numberOfGrinders {
-		grinders <- Grinder{ Beans: beans }
+		grinders<- Grinder{ GroundsQueue: beans }
 	}
 
-	coffe := make(chan int, 100)
+	coffeCups := make(chan int, 100)
 	// Crating my Expresso machines channel
 	expressoMachines := make(chan ExpressoMachine, numberOfExpressoMachines)
 	// Setting up the Worker Pool (of ExpressoMachines)
 	for _ = range numberOfExpressoMachines {
-		expressoMachines <- ExpressoMachine{ Coffe: coffe }
+		expressoMachines<- ExpressoMachine{ CoffeQueue: coffeCups }
 	}
 
-	return grinders, expressoMachines
+	milkCups := make(chan int, 100)
+	// Creating my Steamer machines channel
+	steamers := make(chan Steamer, numberOfSteamers)
+	// Setting up the Steamer Worker Pool
+	for _ = range numberOfSteamers {
+		steamers<- Steamer{ SteamedMilkQueue: milkCups }
+	}
+
+	return grinders, expressoMachines, steamers
 }
