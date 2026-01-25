@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	
 	"go-concurrent-cafeteria/machine"
+	"go-concurrent-cafeteria/telemetry"
 )
 
 const numberOfOrders = 100
 
 func main() {
-	grinders, expressoMachines, steamers := machine.SetupMachines()
+	telemetryService := telemetry.NewTelemetryService()
+	grinders, expressoMachines, steamers := machine.SetupMachines(telemetryService)
 
 	orderedLatte := make(chan Latte)
 	for i := range numberOfOrders {
