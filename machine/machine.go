@@ -26,6 +26,7 @@ type Grinder struct {
 func (g *Grinder) GrindBeans(orderID int) {
 	workOnIt()
 	fmt.Println(fmt.Sprintf("Grinded beans: %d", orderID))
+	g.telemetryService.AddSpan(orderID, time.Now(), "grinded beans")
 	g.GroundsQueue<- orderID
 }
 
@@ -37,6 +38,7 @@ type ExpressoMachine struct {
 func (em *ExpressoMachine) MakeExpresso(grindedBeans int) {
 	workOnIt()
 	fmt.Println(fmt.Sprintf("Made the expresso: %d", grindedBeans))
+	em.telemetryService.AddSpan(grindedBeans, time.Now(), "made the expresso")
 	em.CoffeQueue<- grindedBeans
 }
 
@@ -48,6 +50,7 @@ type Steamer struct {
 func (s *Steamer) SteamMilk(orderID int) {
 	workOnIt()
 	fmt.Println(fmt.Sprintf("Steamed the milk: %d", orderID))
+	s.telemetryService.AddSpan(orderID, time.Now(), "steamed the milk")
 	s.SteamedMilkQueue<- orderID
 }
 

@@ -25,6 +25,7 @@ func main() {
 		fmt.Println("Delivered Latte ", lattes[len(lattes) - 1].orderID)
 	}
 	fmt.Println(fmt.Sprintf("Delivered %d lattes: ", len(lattes)), lattes)
+	telemetryService.PrintTelemetry()
 }
 
 type Latte struct {
@@ -72,13 +73,9 @@ func makeACoffe(orderID int, grinders chan machine.Grinder, expressoMachines cha
 	// Put coffe on the ordered Latte
 	latte := <-unfinishedLattes
 	latte.coffe = expresso
-	// Check  if the Latte is ready, if so put it in the ready chan !
-	if latte.IsDone() {
-		readyLattes<- latte
-	} else {
-	//  If it is not finished, put it in the chan and let the other worker finish its part
-		unfinishedLattes<- latte
-	}
+	
+	// Ready Latte for delivery or keep working on it!
+	finishLatte(latte, unfinishedLattes, readyLattes)
 }
 
 func steamMilk(orderID int, steamers chan machine.Steamer, unfinishedLattes chan Latte, readyLattes chan<- Latte) {
@@ -94,10 +91,17 @@ func steamMilk(orderID int, steamers chan machine.Steamer, unfinishedLattes chan
 	// Put steamed milk on the Latte
 	latte := <-unfinishedLattes
 	latte.milk = steamedMilk
+	
+	// Ready Latte for delivery or keep working on it!
+	finishLatte(latte, unfinishedLattes, readyLattes)
+}
+
+func finishLatte(latte Latte, unfinishedLattes chan Latte, readyLattes chan<- Latte) {
 	// Check  if the Latte is ready, if so put it in the ready chan !
 	if latte.IsDone() {
 		readyLattes<- latte
 	} else {
+	//  If it is not finished, put it in the chan and let the other worker finish its part
 		unfinishedLattes<- latte
 	}
 }
