@@ -3,7 +3,7 @@ package machine
 import (
 	"fmt"
 	"time"
-	"math/rand"
+	"math/rand/v2"
 
 	"go-concurrent-cafeteria/telemetry"
 )
@@ -26,7 +26,7 @@ type Grinder struct {
 func (g *Grinder) GrindBeans(orderID int) {
 	workOnIt()
 	fmt.Println(fmt.Sprintf("Grinded beans: %d", orderID))
-	g.telemetryService.AddSpan(orderID, time.Now(), "grinded beans")
+	g.telemetryService.AddSpan(orderID, "grinded beans")
 	g.GroundsQueue<- orderID
 }
 
@@ -38,7 +38,7 @@ type ExpressoMachine struct {
 func (em *ExpressoMachine) MakeExpresso(grindedBeans int) {
 	workOnIt()
 	fmt.Println(fmt.Sprintf("Made the expresso: %d", grindedBeans))
-	em.telemetryService.AddSpan(grindedBeans, time.Now(), "made the expresso")
+	em.telemetryService.AddSpan(grindedBeans, "made the expresso")
 	em.CoffeQueue<- grindedBeans
 }
 
@@ -50,12 +50,12 @@ type Steamer struct {
 func (s *Steamer) SteamMilk(orderID int) {
 	workOnIt()
 	fmt.Println(fmt.Sprintf("Steamed the milk: %d", orderID))
-	s.telemetryService.AddSpan(orderID, time.Now(), "steamed the milk")
+	s.telemetryService.AddSpan(orderID, "steamed the milk")
 	s.SteamedMilkQueue<- orderID
 }
 
 func workOnIt() {
-	workTime := time.Duration(rand.Float32())
+	workTime := time.Duration(rand.IntN(5) + 1) // Returns a randon Duration between [1, 6) (6 is not included)
 	time.Sleep(workTime * time.Second) // or time.Millisecond, for quicker simulation
 }
 
